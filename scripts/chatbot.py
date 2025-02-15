@@ -15,7 +15,7 @@ def generate_chat_response(user_input):
     if not relevant_context or "⚠️ No relevant data found." in relevant_context:
         return "⚠️ No relevant data found in the database."
 
-    # ✅ Properly format the prompt to include retrieved context
+    # Properly format the prompt to include retrieved context
     prompt = f"""You are an AI assistant that strictly answers based on the provided information. 
 If the information is not relevant to the question, respond with "I don't know."
 
@@ -28,21 +28,21 @@ Answer:
 """
 
     payload = {
-        "prompt": prompt,  # ✅ Now properly includes retrieved context
+        "prompt": prompt,  # Includes retrieved context
         "max_tokens": 200,
-        "temperature": 0.2  # ✅ Reduce hallucination
+        "temperature": 0.2  # Reduce hallucination
     }
 
     response = requests.post(LM_STUDIO_URL, json=payload).json()
 
     # Debugging output
-    print("🔍 Debugging API Response:", response)
+    #print("Debugging API Response:", response)
 
     if "error" in response:
-        return f"⚠️ API Error: {response['error']}"
+        return f"API Error: {response['error']}"
 
     if "choices" not in response:
-        return "⚠️ Error: No 'choices' key found in API response."
+        return "Error: No 'choices' key found in API response."
 
     return response["choices"][0]["text"]
 

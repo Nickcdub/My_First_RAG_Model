@@ -1,20 +1,22 @@
 import chromadb
 import os
 import sys
-from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain.vectorstores import Chroma
-from langchain.prompts import PromptTemplate
+from langchain_huggingface import HuggingFaceEmbeddings
+
 # Add the root project directory to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from config import DATA_FOLDER, VECTOR_DB_PATH, EMBEDDING_MODEL
 
-# Initialize ChromaDB
+# Initialize ChromaDB ================================================================================================================
+
 chroma_client = chromadb.PersistentClient(VECTOR_DB_PATH)
 
 collection = chroma_client.get_collection("knowledge_base")
 
 embedding_model = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)
+
+# Use the user prompt to query the vector DB for relevant chunks =================================================================================================================
 
 def retrieve_relevant_chunks(query):
     query_embedding = embedding_model.embed_query(query)
@@ -25,9 +27,11 @@ def retrieve_relevant_chunks(query):
         print(" No relevant data found in the database!")
         return [" No relevant data found."]
 
-    print(f" Retrieved Chunks: {results}")
+    #print(f" Retrieved Chunks: {results}") #For debugging, check if retriebed chunks returns None
 
     return [doc for doc in results["documents"][0] if doc is not None]
+
+# Calling this file will use relevant chunks to =================================================================================================================
 
 
 if __name__ == "__main__":
