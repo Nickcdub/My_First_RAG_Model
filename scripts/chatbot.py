@@ -35,9 +35,7 @@ Answer:
 
     response = requests.post(LM_STUDIO_URL, json=payload).json()
 
-    # Debugging output
-    #print("Debugging API Response:", response)
-
+    #Error Handling
     if "error" in response:
         return f"API Error: {response['error']}"
 
@@ -46,10 +44,11 @@ Answer:
 
     return response["choices"][0]["text"]
 
+#This will never be accessed, only for future debugging purposes.
 if __name__ == "__main__":
     while True:
         user_input = input(" You: ")
-        if user_input.lower() in ["exit", "quit"]:
+        if user_input.lower() == "exit":
             break
-        response = generate_chat_response(user_input)
-        print(" Chatbot:", response)
+    response = generate_chat_response(user_input)
+    print(" Chatbot:", response)

@@ -5,6 +5,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "scripts
 
 from chatbot import generate_chat_response
 
+#This lets us know our chatbot has begun to listen
 print("RAG Chatbot Running! Type 'exit' to stop.")
 while True:
     user_input = input(" You: ")

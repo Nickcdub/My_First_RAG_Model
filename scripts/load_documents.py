@@ -40,11 +40,6 @@ def process_documents():
         print(f" Generated embeddings for {file_path}")
 
         # Store embeddings in ChromaDB
-        #for i, chunk in enumerate(chunks):
-            #collection.add(ids=[f"{file_path}-{i}"], embeddings=[vectors[i]], metadatas=[{"source": file_path}])
-        
-        #print(f" {file_path} processed successfully!")
-        # Store embeddings in ChromaDB
     for i, chunk in enumerate(chunks):
         chunk_id = f"{file_path}-{i}"
 

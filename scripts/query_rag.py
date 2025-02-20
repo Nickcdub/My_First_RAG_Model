@@ -33,7 +33,7 @@ def retrieve_relevant_chunks(query):
 
 # Calling this file will use relevant chunks to =================================================================================================================
 
-
+#This will never be accessed, only for debugging purposes.
 if __name__ == "__main__":
     query = input("Enter your question: ")
     relevant_docs = retrieve_relevant_chunks(query)
