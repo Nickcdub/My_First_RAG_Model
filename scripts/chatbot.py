@@ -4,7 +4,6 @@ import os
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "scripts")))
 from query_rag import retrieve_relevant_chunks
-from config import MODEL_NAME
 
 LM_STUDIO_URL = "http://localhost:1234/v1/completions"  # LM Studio API
 

@@ -6,7 +6,7 @@ from langchain_huggingface import HuggingFaceEmbeddings
 # Add the root project directory to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from config import DATA_FOLDER, VECTOR_DB_PATH, EMBEDDING_MODEL
+from config import VECTOR_DB_PATH, EMBEDDING_MODEL
 
 # Initialize ChromaDB ================================================================================================================
 

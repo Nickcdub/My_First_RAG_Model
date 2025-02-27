@@ -25,15 +25,21 @@ def process_documents():
         encoding = "utf-8"
         
         try:
-            with open(file_path, "r", encoding=encoding, errors="replace") as file:
-                text = file.read()
-            print(f" Successfully read {file_path}")
+            # Use TextLoader instead of manual file reading
+            loader = TextLoader(file_path)
+            documents = loader.load()  # Returns a list of Document objects
+            
+            # Extract raw text from Document objects
+            text = "\n".join([doc.page_content for doc in documents])
+
+            print(f"Successfully read {file_path}")
         except Exception as e:
-            print(f" Error reading {file_path}: {e}")
+            print(f"Error reading {file_path}: {e}")
+            continue
         
         # Debugging text chunking
         chunks = text_splitter.split_text(text)
-        print(f"🔹 {len(chunks)} text chunks created for {file_path}")
+        print(f"{len(chunks)} text chunks created for {file_path}")
 
         # Generate embeddings
         vectors = embedding_model.embed_documents(chunks)
