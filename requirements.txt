@@ -2,3 +2,7 @@ chromadb
 langchain
 sentence-transformers
 requests
+tqdm
+pypdf
+langchain-community
+pdfminer.six
