@@ -3,20 +3,21 @@ import sys
 import os
 from typing import List, Dict
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from query_rag import retrieve_relevant_chunks
+# Import from the same directory
+from scripts.query_rag import retrieve_relevant_chunks
 from config import LM_STUDIO_URL
 
 # Constants
 MAX_TOKENS = 800  # Increased from 300 to allow for longer responses
 TEMPERATURE = 0.2  # Keep temperature low for factual responses
 
-def format_sources(chunks: List[str], metadata: List[Dict]) -> str:
-    """Format source references with their context chunks."""
+def format_sources(metadata: List[Dict]) -> str:
+    """Format source references with page numbers only."""
     sources = []
-    for chunk, meta in zip(chunks, metadata):
+    for meta in metadata:
         source = os.path.basename(meta['source'])
-        sources.append(f"\n[Source: {source}]\nContext used: \"{chunk}\"\n")
+        page = meta.get('page_number', 'Unknown')
+        sources.append(f"[Source: {source}, Page: {page}]")
     return "\n".join(sources)
 
 def generate_chat_response(user_input: str) -> str:
@@ -30,11 +31,12 @@ def generate_chat_response(user_input: str) -> str:
     context_with_sources = []
     for chunk, meta in zip(relevant_chunks, chunk_metadata):
         source = os.path.basename(meta['source'])
-        context_with_sources.append(f"[From {source}]: {chunk}")
+        page = meta.get('page_number', 'Unknown')
+        context_with_sources.append(f"[From {source}, Page {page}]: {chunk}")
     
     context = "\n\n".join(context_with_sources)
 
-    # Properly format the prompt to include retrieved context
+    # Modify the prompt to discourage the model from adding its own sources
     prompt = f"""You are an AI assistant that strictly answers based on the provided information. 
 If the information is not relevant to the question, respond with "I don't know."
 
@@ -45,10 +47,10 @@ Question: {user_input}
 
 Instructions:
 1. Answer the question based on the provided context
-2. Synthesize information from multiple chunks when relevant
-3. After your answer, list the sources you used
+2. Organize your response into logical paragraphs for readability
+3. DO NOT list the sources at the end of your response - this will be handled automatically
 4. If different sources provide conflicting information, mention this explicitly
-5. If the context contains technical details, include them in your response
+5. Keep your response concise and well-structured
 
 Answer:"""
 
@@ -69,10 +71,21 @@ Answer:"""
 
         answer = response["choices"][0]["text"].strip()
         
-        # Add source reference footer if not already included by the model
-        if not any(f"Source:" in line for line in answer.split('\n')):
-            sources_footer = "\n\nSources and Context Used:\n" + format_sources(relevant_chunks, chunk_metadata)
-            answer += sources_footer
+        # Check if the response already contains a sources section
+        sources_keywords = ["Sources:", "Source:", "References:", "Reference:"]
+        has_sources_section = False
+        
+        for keyword in sources_keywords:
+            if keyword in answer:
+                # Remove any existing sources section to avoid duplication
+                answer_parts = answer.split(keyword, 1)
+                answer = answer_parts[0].strip()
+                has_sources_section = True
+                break
+        
+        # Always add our standardized sources section
+        sources_footer = "\n\nSources:\n" + format_sources(chunk_metadata)
+        answer += sources_footer
 
         return answer
 

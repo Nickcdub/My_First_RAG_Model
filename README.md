@@ -1,69 +1,78 @@
-# My_First_RAG_Model'
+# RAG Chatbot
 
-# Retrieval-Augmented Generation (RAG) Model
+A Retrieval-Augmented Generation (RAG) chatbot that can answer questions based on your documents.
 
-## Overview
-This project explores the implementation of a **Retrieval-Augmented Generation (RAG) Model** by integrating **AI models with vector-based retrieval**. The goal is to enhance language model responses with relevant retrieved information from a structured knowledge base.
+## Setup
 
-By working with test data first, this experiment will provide insight into:
-- Loading and embedding textual data for AI processing.
-- Storing and retrieving information using **vector databases (ChromaDB)**.
-- Using **retrieved information** to enhance AI-generated responses.
+1. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
 
----
+2. Place your documents:
+- Put your PDF or text files in the `data/` folder
 
-## Objective
-This project aims to:
-- Build a functional **RAG system** to augment LLM responses with retrieved data.
-- Load and preprocess documents by **splitting, embedding, and storing** them in **ChromaDB**.
-- Query the stored knowledge to **retrieve relevant information** before responding.
+3. Process documents:
+```bash
+python scripts/load_documents.py
+```
 
----
+> **Note:** If you've previously processed documents and want accurate page numbers in citations, 
+> you should clear your vector store and reprocess your documents:
+> ```bash
+> rm -rf vector_store/*
+> python scripts/load_documents.py
+> ```
 
-## How To Use
+## Running the Application
 
-### 1. Load Documents
-Before use, **delete any existing ChromaDB vector storage** to prevent conflicts:
+1. Start LM Studio:
+- Open LM Studio
+- Load the Mistral-7B model
+- Click "Start Server"
+- Ensure it's running on http://localhost:1234
 
-'$ rm -rf vector_store/chroma_db'
+2. Launch the application:
+```bash
+python app.py
+```
 
-This ensures:
+The application will:
+1. Check LM Studio connection
+2. Start the web interface
+3. Open the chat interface at http://localhost:8501
 
-- No dimension mismatch errors (if a different embedding model is used).
-- No duplicate embeddings (if the same data is loaded multiple times).
-- Once cleared, reload the documents:
+## Usage
 
-'$ python3 scripts/load_documents.py'
+1. Type your questions in the chat input at the bottom
+2. The bot will search through your documents and provide relevant answers
+3. Each answer includes citations from the source documents with page numbers
+4. Use the "Clear Chat" button to start a fresh conversation
 
-This will:
+## Troubleshooting
 
-- Process text files from the data/ directory.
-- Split documents into chunks.
-- Generate embeddings using the configured model.
-- Store the embeddings in ChromaDB for retrieval.
+If you encounter issues:
 
-### 2. Activate LM Studio
-Once the embedding model is loaded with data, start LM Studio to serve the LLM:
+1. Check LM Studio is running and accessible at http://localhost:1234
+2. Ensure your documents are properly loaded in the `data/` folder
+3. Check the vector store was created successfully in `vector_store/`
+4. Make sure all dependencies are installed correctly
+5. If page numbers are incorrect, clear the vector store and reprocess documents
 
-1. Open LM Studio.
-2. Select the local model to use (e.g., mistral-7b).
-3. Click "Run API Server" to enable API mode.
-4. Ensure the server is running on port 1234 (or update the script if needed).
-3. Start the Chatbot
+## Directory Structure
 
-### 3. Run the chatbot application:
-
-'$ python3 app.py'
-
-This initializes the system, allowing it to query ChromaDB for relevant information before generating responses.
-
-### 4. Query the Chatbot
-Once running, ask questions that relate to the stored dataset:
-
-You: Can you tell me about ID-1002?
-Chatbot: The XG-250 Quantum Processor was released by QuantumCorp in 2023. It features a 5nm architecture and offers a 25% increase in processing speed compared to its predecessor.
-If the chatbot responds with "I don't know", it may indicate:
-
-The embedding model is not retrieving relevant data.
-The query does not closely match stored embeddings.
-The data was not loaded correctly.
+```
+.
+├── app.py               # Main application entry point
+├── data/               # Your source documents
+├── vector_store/      # Embedded document storage
+├── frontend/         # Web interface
+│   ├── server.py    # Flask server implementation
+│   └── templates/   # HTML templates
+│       └── index.html
+├── scripts/          # Core RAG implementation
+│   ├── load_documents.py
+│   ├── query_rag.py
+│   └── chatbot.py
+└── config.py        # Configuration settings
+```

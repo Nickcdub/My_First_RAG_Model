@@ -6,3 +6,4 @@ tqdm
 pypdf
 langchain-community
 pdfminer.six
+flask

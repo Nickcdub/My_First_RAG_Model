@@ -2,7 +2,7 @@ import os
 import sys
 import glob
 import chromadb
-from typing import List, Generator, Iterator
+from typing import List, Generator, Iterator, Dict, Tuple
 from langchain_community.document_loaders import TextLoader, PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
@@ -29,8 +29,11 @@ BATCH_SIZE = 16  # Reduced batch size for large documents
 MAX_CHUNK_SIZE = 500  # Maximum characters per chunk
 CHUNK_OVERLAP = 50   # Overlap between chunks
 
-def stream_pdf_pages(pdf_path: str) -> Generator[str, None, None]:
-    """Stream PDF pages one at a time to conserve memory."""
+def stream_pdf_pages(pdf_path: str) -> Generator[Tuple[str, int], None, None]:
+    """
+    Stream PDF pages one at a time to conserve memory.
+    Returns a generator of (text, page_number) tuples.
+    """
     reader = PdfReader(pdf_path)
     total_pages = len(reader.pages)
     
@@ -39,7 +42,8 @@ def stream_pdf_pages(pdf_path: str) -> Generator[str, None, None]:
             page = reader.pages[page_num]
             text = page.extract_text()
             if text.strip():  # Only yield non-empty pages
-                yield text
+                # Add 1 to page_num because PDF reader is 0-indexed
+                yield (text, page_num + 1)
             
             # Force garbage collection after each page
             del page
@@ -60,6 +64,66 @@ def chunk_generator(text: str, text_splitter: RecursiveCharacterTextSplitter) ->
     except Exception as e:
         logger.error(f"Error generating chunks: {e}")
 
+def process_pdf_page(page_text: str, page_number: int, file_path: str, 
+                     embedding_model: HuggingFaceEmbeddings, 
+                     text_splitter: RecursiveCharacterTextSplitter, 
+                     start_chunk_number: int = 0):
+    """Process a single PDF page with correct page number tracking."""
+    chunks = list(chunk_generator(page_text, text_splitter))
+    
+    batch = []
+    batch_ids = []
+    batch_metadata = []
+    chunk_count = start_chunk_number
+    
+    for i, chunk in enumerate(chunks):
+        chunk_count += 1
+        file_basename = os.path.splitext(os.path.basename(file_path))[0]
+        # Include page number in the chunk ID
+        chunk_id = f"{file_basename}-page{page_number}-chunk{i+1}"
+        
+        batch.append(chunk)
+        batch_ids.append(chunk_id)
+        batch_metadata.append({
+            "source": file_path,
+            "chunk_number": chunk_count,
+            "page_number": page_number,  # Use actual page number
+            "chunk_index_in_page": i+1   # Track position within page
+        })
+        
+        if len(batch) >= BATCH_SIZE:
+            try:
+                embeddings = embedding_model.embed_documents(batch)
+                collection.add(
+                    ids=batch_ids,
+                    embeddings=embeddings,
+                    documents=batch,
+                    metadatas=batch_metadata
+                )
+                logger.info(f"Processed {len(batch)} chunks from page {page_number}")
+            except Exception as e:
+                logger.error(f"Error processing batch from page {page_number}: {e}")
+            
+            batch = []
+            batch_ids = []
+            batch_metadata = []
+            gc.collect()
+    
+    # Process any remaining chunks
+    if batch:
+        try:
+            embeddings = embedding_model.embed_documents(batch)
+            collection.add(
+                ids=batch_ids,
+                embeddings=embeddings,
+                documents=batch,
+                metadatas=batch_metadata
+            )
+        except Exception as e:
+            logger.error(f"Error processing final batch from page {page_number}: {e}")
+    
+    return chunk_count
+
 def process_chunks_in_batches(chunks: Iterator[str], file_path: str, embedding_model: HuggingFaceEmbeddings, start_chunk_number: int = 0):
     """Process chunks in batches to manage memory usage."""
     batch = []
@@ -77,7 +141,7 @@ def process_chunks_in_batches(chunks: Iterator[str], file_path: str, embedding_m
             batch_metadata.append({
                 "source": file_path,
                 "chunk_number": chunk_count,
-                "page_number": chunk_count // MAX_CHUNK_SIZE + 1  # Approximate page number
+                "page_number": 1  # For text files, we use page 1
             })
             
             if len(batch) >= BATCH_SIZE:
@@ -89,7 +153,7 @@ def process_chunks_in_batches(chunks: Iterator[str], file_path: str, embedding_m
                         documents=batch,
                         metadatas=batch_metadata
                     )
-                    logger.info(f"Processed batch of {len(batch)} chunks (IDs {batch_ids[0]} to {batch_ids[-1]})")
+                    logger.info(f"Processed batch of {len(batch)} chunks")
                 except Exception as e:
                     logger.error(f"Error processing batch: {e}")
                 
@@ -138,10 +202,16 @@ def process_documents():
             
             if file_extension == '.pdf':
                 logger.info(f"Processing PDF: {file_path}")
-                # Stream PDF pages and process each page
-                for page_text in stream_pdf_pages(file_path):
-                    chunks = chunk_generator(page_text, text_splitter)
-                    total_chunks = process_chunks_in_batches(chunks, file_path, embedding_model, total_chunks)
+                # Stream PDF pages and process each page with its actual page number
+                for page_text, page_number in stream_pdf_pages(file_path):
+                    total_chunks = process_pdf_page(
+                        page_text, 
+                        page_number,
+                        file_path, 
+                        embedding_model, 
+                        text_splitter, 
+                        total_chunks
+                    )
             
             elif file_extension == '.txt':
                 logger.info(f"Processing TXT: {file_path}")

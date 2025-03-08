@@ -1,15 +1,50 @@
-import sys
 import os
+import sys
+from pathlib import Path
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "scripts")))
+def setup_environment():
+    """Setup the Python path and verify critical components"""
+    # Add the current directory to Python path
+    ROOT_DIR = Path(__file__).resolve().parent
+    sys.path.append(str(ROOT_DIR))
+    
+    # Verify required directories exist
+    required_dirs = ['data', 'vector_store', 'frontend/templates']
+    for dir_path in required_dirs:
+        full_path = ROOT_DIR / dir_path
+        if not full_path.exists():
+            print(f"Creating directory: {dir_path}")
+            full_path.mkdir(parents=True, exist_ok=True)
 
-from chatbot import generate_chat_response
+def main():
+    """Main entry point for the RAG Chatbot application"""
+    # Setup environment
+    setup_environment()
+    
+    print("Starting RAG Chatbot...")
+    print("1. Checking LM Studio connection...")
+    
+    # Import after environment setup
+    from scripts.chatbot import generate_chat_response
+    from frontend.server import start_server
+    
+    try:
+        # Test LM Studio connection with a simple query
+        test_response = generate_chat_response("test")
+        print("✓ LM Studio connection successful")
+    except Exception as e:
+        print("⚠️  Warning: Could not connect to LM Studio.")
+        print("   Please make sure LM Studio is running and the server is started.")
+        print("   Error: {}".format(str(e)))
+        user_input = input("Do you want to continue anyway? (y/n): ")
+        if user_input.lower() != 'y':
+            sys.exit(1)
+    
+    print("\n2. Starting web interface...")
+    print("   Access the chatbot at http://localhost:8501")
+    
+    # Start the Flask server
+    start_server(port=8501, debug=True)
 
-#This lets us know our chatbot has begun to listen
-print("RAG Chatbot Running! Type 'exit' to stop.")
-while True:
-    user_input = input(" You: ")
-    if user_input.lower() == "exit":
-        break
-    response = generate_chat_response(user_input)
-    print(" Chatbot:", response)
+if __name__ == "__main__":
+    main()
