@@ -86,6 +86,13 @@
             max-width: 800px;
             margin: 0 auto;
             display: flex;
+            flex-direction: column;
+            gap: 5px;
+            position: relative;
+        }
+
+        .input-controls {
+            display: flex;
             gap: 10px;
         }
 
@@ -97,6 +104,22 @@
             background-color: #40414f;
             color: #fff;
             font-size: 16px;
+        }
+
+        .char-counter {
+            font-size: 12px;
+            color: #8e8ea0;
+            text-align: left;
+            margin-bottom: 4px;
+            padding-left: 2px;
+        }
+
+        .char-counter.warning {
+            color: #f59e0b; /* Yellow warning */
+        }
+
+        .char-counter.danger {
+            color: #ef4444; /* Red danger */
         }
 
         button {
@@ -139,9 +162,12 @@
         </div>
         <div class="input-container">
             <div class="input-wrapper">
-                <input type="text" id="user-input" placeholder="Ask a question..." autocomplete="off">
-                <button onclick="sendMessage()">Send</button>
-                <button id="clear-chat" onclick="clearChat()">Clear</button>
+                <span id="char-counter" class="char-counter">0/500</span>
+                <div class="input-controls">
+                    <input type="text" id="user-input" placeholder="Ask a question..." autocomplete="off" maxlength="500">
+                    <button onclick="sendMessage()">Send</button>
+                    <button id="clear-chat" onclick="clearChat()">Clear</button>
+                </div>
             </div>
         </div>
     </div>
@@ -149,6 +175,8 @@
     <script>
         const chatContainer = document.getElementById('chat-container');
         const userInput = document.getElementById('user-input');
+        const charCounter = document.getElementById('char-counter');
+        const MAX_CHARS = 500;
 
         function addMessage(content, isUser = false) {
             const messageDiv = document.createElement('div');
@@ -233,6 +261,9 @@
 
             // Clear input
             userInput.value = '';
+            
+            // Reset character counter
+            updateCharCounter();
 
             // Add user message
             addMessage(message, true);
@@ -278,6 +309,24 @@
                 sendMessage();
             }
         });
+
+        // Update character counter
+        function updateCharCounter() {
+            const remaining = userInput.value.length;
+            charCounter.textContent = `${remaining}/${MAX_CHARS}`;
+            
+            // Update color based on remaining characters
+            if (remaining > MAX_CHARS * 0.8) {
+                charCounter.className = 'char-counter danger';
+            } else if (remaining > MAX_CHARS * 0.6) {
+                charCounter.className = 'char-counter warning';
+            } else {
+                charCounter.className = 'char-counter';
+            }
+        }
+
+        // Add event listener for input changes
+        userInput.addEventListener('input', updateCharCounter);
     </script>
 </body>
 </html> 
